@@ -1,0 +1,30 @@
+@page "/logout"
+@using blazorserverapp.Service
+@using blazorserverapp.Model
+@using Microsoft.Extensions.Caching.Memory
+@inject IMemoryCache _memoryCache
+@inject ReloadService _reloadService
+
+
+    @if(!string.IsNullOrWhiteSpace(Login))
+    {
+        <div>
+            <span>@Login : </span><a class="top-row px-4" @onclick="Disconnect">Deconnexion</a>
+        </div>
+    
+    }
+
+
+
+@code {
+    [Parameter]
+    public string? Login { get; set; }
+
+    
+    private void Disconnect()
+    {
+        // Supprimer l'utilisateur du cache
+        _memoryCache.Remove("currentUser");
+        _reloadService.UserConnectionStateRequestReload();
+    }
+}

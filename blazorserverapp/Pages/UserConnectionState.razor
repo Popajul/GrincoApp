@@ -1,0 +1,52 @@
+@page "/connection"
+@using blazorserverapp.Service
+@using grincoAppModels
+@using Microsoft.Extensions.Caching.Memory
+@inject IMemoryCache _memoryCache
+@inject ReloadService _reloadService
+@inject NavigationManager _navigation
+
+    <div class="bg-light">
+        @if(IsConnected)
+    {
+        <Logout Login="@Login"/>
+    }
+    else
+    {
+        <Login ParentRoute="/" />
+    }
+    </div>
+    
+
+
+@code
+{
+    private bool IsConnected {get;set;}
+    private string? Login {get;set;}
+    User? user;
+    protected override void OnInitialized()
+    {
+        if(_memoryCache.TryGetValue<User>("currentUser", out user))
+        {
+            IsConnected = true;
+            Login = user.Login;
+            return;
+        }
+        IsConnected = false;
+        _reloadService.UserConnectionStateReloadRequested += OnReloadRequested;
+    }
+     private void OnReloadRequested()
+    {
+        IsConnected = _memoryCache.TryGetValue<User>("currentUser",out user);
+    
+        if(IsConnected)
+        {
+           Login = user!.Login;
+        }
+        else
+        {
+            Login = "";
+        }
+        StateHasChanged();
+    }
+}

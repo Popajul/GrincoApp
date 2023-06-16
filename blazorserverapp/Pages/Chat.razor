@@ -1,0 +1,94 @@
+@using grincoAppModels
+@using blazorserverapp.Service
+@using Microsoft.Extensions.Caching.Memory
+@using Microsoft.JSInterop
+@inject IMemoryCache _memoryCache
+@inject RequestService<Conversation> _conversationRequestService
+@inject RequestService<Message> _messageRequestService
+@inject NavigationManager _navigationManager
+@inject ReloadService _reloadService
+@inject IJSRuntime JSRuntime
+
+<div Class="rz-p-0 rz-p-md-12">
+    <RadzenRow Gap="1rem">
+        <RadzenColumn Size="12" SizeSM="6">
+            <RadzenStack>
+                <RadzenFormField Text="Conversations" Variant="@variant">
+                    <RadzenDropDown Data=@Conversations @bind-Value="@selectedConversation" TextProperty="Description" Change="OnChange" />
+                </RadzenFormField>
+            </RadzenStack>
+        </RadzenColumn>
+    </RadzenRow>
+</div>
+@* <div class="col-md-6 col-lg-4 p-3"> *@
+            @* <RadzenCard >  *@
+                @* Style="overflow-y: scroll;scroll-behavior: revert;overflow-x: hidden" *@
+                <RadzenTextArea Disabled="true" @bind-Value=@chatContent Cols="70" Rows="5" @ref="textAreaRef"/>
+                @* <RadzenTextBox TextStyle="TextStyle.Body1" TagName="TagName.H3" Placeholder="Ecrivez votre message"></RadzenTextBox> *@
+            @* </RadzenCard> *@
+        @* </div> *@
+
+@code {
+    List<Conversation> Conversations { get; set; } = new List<Conversation>();
+    Conversation? selectedConversation;
+    User CurrentUser {get;set;} = new User();
+    Variant variant = Variant.Filled;
+    List<Message> Messages = new List<Message>();
+    string chatContent = "Selectionnez une conversation pour afficher les messages";
+
+    private RadzenTextArea textAreaRef;
+
+    @* private void SetComponentRef(RadzenTextArea component)
+    {
+        textAreaRef = component;
+    } *@
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        CurrentUser  = _memoryCache.Get<User>("currentUser");
+        var parameters = new Dictionary<string,string>();
+        parameters.Add("withParticipants","true");
+        Conversations = await _conversationRequestService.GetMany(@$"/Conversations/by_participant/{CurrentUser.Id}",parameters);
+        selectedConversation = Conversations.Any() ? Conversations.FirstOrDefault() : null;
+        if(selectedConversation !=null)
+        {
+            await OpenConversation();
+        }
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("scrollToBottom", nameof(textAreaRef));
+        }
+    }
+
+    
+    async Task OpenConversation()
+    {
+        Messages = await _messageRequestService.GetMany(@$"/Messages/conversations/{selectedConversation!.Id}", new Dictionary<string,string>());
+        SetChatContent();
+
+    }
+    async Task OnChange()
+    {
+        if(selectedConversation != null)
+        {
+            await OpenConversation();
+            StateHasChanged();
+        }
+
+    }
+    void SetChatContent()
+    {
+        if(Messages != null && Messages.Any())
+        {
+            System.Text.StringBuilder sb = new();
+            foreach(var message in Messages)
+            {
+                sb.Append($"\n\n  {message.TimeStamp.ToString()} \t {selectedConversation!.Participants.First(p=>p.Id == message.SenderId).Login} :  {message.Content}");
+            }
+            chatContent = sb.ToString();
+        }
+    }
+}

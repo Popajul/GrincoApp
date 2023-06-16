@@ -1,0 +1,48 @@
+@page "/login/{ParentRoute}"
+@using grincoAppModels
+@using blazorserverapp.Service
+@using Microsoft.Extensions.Caching.Memory
+@inject IConfiguration _config
+@inject IMemoryCache _memoryCache
+@inject NavigationManager _navigation
+@inject ReloadService _reloadService
+@inject RequestService<User> _userRequestService
+
+<div>
+    <EditForm Model="@userFormModel" OnValidSubmit="@HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+            <label>
+                Login:
+                <InputText @bind-Value="userFormModel.Login" />
+            </label>
+      
+       
+            <label>
+                Password:
+                <InputText @bind-Value="userFormModel.Password" />
+            </label>
+        
+        <button type="submit">Valider</button>
+    </EditForm>
+</div>
+@code
+{
+    [Parameter]
+    public string? ParentRoute {get;set;}
+    private Model.UserFormModel userFormModel = new ();
+    private async Task HandleValidSubmit()
+    {
+       var user =  await _userRequestService.Get(@$"/Users/by_login/{userFormModel.Login}",new Dictionary<string,string>());
+
+        if (user  == null)
+            return;
+        if(Equals(userFormModel.Password,user.Password))
+        {
+             _memoryCache.Set("currentUser",user);
+             _reloadService.UserConnectionStateRequestReload();
+             _navigation.NavigateTo($"/{ParentRoute}");       
+        }
+    }
+}

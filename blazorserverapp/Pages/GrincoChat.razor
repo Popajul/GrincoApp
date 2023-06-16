@@ -1,0 +1,63 @@
+@page "/grincochat"
+@using Microsoft.Extensions.Caching.Memory
+@using blazorserverapp.Service
+@using grincoAppModels
+@inject IConfiguration _config
+@inject IMemoryCache _memoryCache
+@inject NavigationManager _navigation
+@inject ReloadService _reloadService
+
+
+    @if(CurrentUser != null)
+    {
+    <Chat></Chat>
+    }
+    else
+    {
+        <p>Merci de vous authentifier pour utiliser GrincoChat</p>
+    }
+    
+
+
+@code {
+    User? CurrentUser  {get;set;}
+    string? MessageToSend {get;set;}
+    List<Message> messages { get; set; } = new List<Message> ();
+    List<Conversation> conversations {get;set;} = new List<Conversation>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        
+        if(_memoryCache.TryGetValue<User>("currentUser", out User user))
+            CurrentUser = user;
+        _reloadService.UserConnectionStateReloadRequested += OnReloadRequested;
+        
+        if(CurrentUser == null)
+        {
+            return;
+        }
+    }
+    
+     private void OnReloadRequested()
+    {
+        
+        if(_memoryCache.TryGetValue<User>("currentUser", out User user))
+            CurrentUser = user;
+        else
+            CurrentUser = null;
+        StateHasChanged();
+    }
+    private void SendMessage()
+    {
+        if(string.IsNullOrWhiteSpace(MessageToSend))
+            return;
+        messages.Add(new()
+        {
+            Content = MessageToSend,
+            SenderId = CurrentUser!.Id,
+            TimeStamp = DateTime.Now
+        });
+    }
+}
+
+
