@@ -20,14 +20,72 @@
         </RadzenColumn>
     </RadzenRow>
 </div>
-@* <div class="col-md-6 col-lg-4 p-3"> *@
-            @* <RadzenCard >  *@
-                @* Style="overflow-y: scroll;scroll-behavior: revert;overflow-x: hidden" *@
-                <RadzenTextArea Disabled="true" @bind-Value=@chatContent Cols="70" Rows="5" @ref="textAreaRef"/>
-                @* <RadzenTextBox TextStyle="TextStyle.Body1" TagName="TagName.H3" Placeholder="Ecrivez votre message"></RadzenTextBox> *@
-            @* </RadzenCard> *@
-        @* </div> *@
 
+<div class="conversation-container-1">
+    <div class="conversation-container-2">
+        @foreach (var message in Messages)
+    {
+    string positionCssClassName = "";
+    string authorLogin = selectedConversation!.Participants.First(p=>p.Id == message.SenderId).Login;
+    if(authorLogin == CurrentUser.Login)
+        positionCssClassName = "right";
+    <div class="message-item-container @positionCssClassName">
+      <div >
+      @authorLogin:
+      </div>
+      <div class="message-content-container">
+        @message.Content
+      </div>
+    </div>  
+   
+    }  
+    </div>
+    
+  </div>
+
+<style>
+.conversation-container-1{
+  margin: auto;
+  display:flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 510px;
+  height: 700px;
+  border: 3px solid #000000;
+  border-radius: 50px;
+}
+.conversation-container-2{
+  display : flex;
+  flex-wrap: nowrap;
+  flex-direction: column;
+  justify-content: right;
+  background-color: white;
+  width: 500px;
+  height: 600px;
+  overflow-y: auto;
+  scroll-padding-top: 500px;
+}
+.message-item-container{
+    display: flex;
+    flex-direction: row;
+  margin: 20px;
+  max-width: 60%;
+}
+.message-content-container{
+  margin: auto;
+  justify-content: right;
+  border: 1px solid #000000;
+  border-radius: 50px;
+  background-color: white;  
+  padding:10px;
+  max-width: inherit;
+  
+  
+}
+.right{
+  align-self: flex-end;
+}
+</style>
 @code {
     List<Conversation> Conversations { get; set; } = new List<Conversation>();
     Conversation? selectedConversation;
@@ -36,12 +94,7 @@
     List<Message> Messages = new List<Message>();
     string chatContent = "Selectionnez une conversation pour afficher les messages";
 
-    private RadzenTextArea textAreaRef;
-
-    @* private void SetComponentRef(RadzenTextArea component)
-    {
-        textAreaRef = component;
-    } *@
+    
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
@@ -55,14 +108,6 @@
             await OpenConversation();
         }
     }
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            await JSRuntime.InvokeVoidAsync("scrollToBottom", nameof(textAreaRef));
-        }
-    }
-
     
     async Task OpenConversation()
     {
