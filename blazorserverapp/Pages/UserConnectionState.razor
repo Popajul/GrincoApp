@@ -13,7 +13,7 @@
     }
     else
     {
-        <Login ParentRoute="/" />
+        <Login />
     }
     </div>
     
@@ -23,13 +23,13 @@
 {
     private bool IsConnected {get;set;}
     private string? Login {get;set;}
-    User? user;
+    private User? user;
     protected override void OnInitialized()
     {
         if(_memoryCache.TryGetValue<User>("currentUser", out user))
         {
             IsConnected = true;
-            Login = user.Login;
+            Login = user!.Login;
             return;
         }
         IsConnected = false;

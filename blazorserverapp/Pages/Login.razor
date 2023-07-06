@@ -1,4 +1,4 @@
-@page "/login/{ParentRoute}"
+@page "/login"
 @using grincoAppModels
 @using blazorserverapp.Service
 @using Microsoft.Extensions.Caching.Memory
@@ -29,8 +29,6 @@
 </div>
 @code
 {
-    [Parameter]
-    public string? ParentRoute {get;set;}
     private Model.UserFormModel userFormModel = new ();
     private async Task HandleValidSubmit()
     {
@@ -41,8 +39,7 @@
         if(Equals(userFormModel.Password,user.Password))
         {
              _memoryCache.Set("currentUser",user);
-             _reloadService.UserConnectionStateRequestReload();
-             _navigation.NavigateTo($"/{ParentRoute}");       
+             _reloadService.UserConnectionStateRequestReload();      
         }
     }
 }
