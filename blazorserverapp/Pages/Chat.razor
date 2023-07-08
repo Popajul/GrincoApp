@@ -2,13 +2,13 @@
 @using blazorserverapp.Service
 @using Microsoft.Extensions.Caching.Memory
 @using Microsoft.JSInterop
+@using Microsoft.AspNetCore.SignalR.Client
 @inject IMemoryCache _memoryCache
 @inject RequestService<Conversation> _conversationRequestService
 @inject RequestService<Message> _messageRequestService
 @inject NavigationManager _navigationManager
 @inject ReloadService _reloadService
 @inject IJSRuntime JSRuntime
-
 <div Class="rz-p-0 rz-p-md-12">
     <RadzenRow Gap="1rem">
         <RadzenColumn Size="12" SizeSM="6">
@@ -26,10 +26,10 @@
         @foreach (var message in Messages)
     {
     string positionCssClassName = "";
-    string authorLogin = selectedConversation!.Participants.First(p=>p.Id == message.SenderId).Login;
+    string? authorLogin = selectedConversation!.Participants.FirstOrDefault(p=>p.Id == message.SenderId)?.Login;
     if(authorLogin == CurrentUser.Login)
         positionCssClassName = "right";
-    <div class="message-item-container @positionCssClassName">
+    <div class="message-item-container @positionCssClassName" >
       <div >
       @authorLogin:
       </div>
@@ -38,7 +38,11 @@
       </div>
     </div>  
    
-    }  
+    }
+    <input type="text" @bind="newMessage" @onkeydown="CheckForEnter" />
+    <button @onclick="AddMessage" >Send</button>
+
+    
     </div>
     
   </div>
@@ -64,6 +68,7 @@
   height: 600px;
   overflow-y: auto;
   scroll-padding-top: 500px;
+  scrolltop: 600px;
 }
 .message-item-container{
     display: flex;
@@ -92,8 +97,8 @@
     User CurrentUser {get;set;} = new User();
     Variant variant = Variant.Filled;
     List<Message> Messages = new List<Message>();
-    string chatContent = "Selectionnez une conversation pour afficher les messages";
-
+    string newMessage = "";
+    HubConnection? hubConnection;
     
     protected override async Task OnInitializedAsync()
     {
@@ -107,12 +112,23 @@
         {
             await OpenConversation();
         }
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl("http://grincoapp.bzh/chathub"/*_navigationManager.ToAbsoluteUri("/chathub")*/)
+            .Build();
+
+        hubConnection.On<Message>("ReceiveMessage",message =>
+        {
+            Messages.Add(message);
+            InvokeAsync(StateHasChanged);
+        });
+
+        await hubConnection.StartAsync();
     }
     
     async Task OpenConversation()
     {
+        Messages.Clear();
         Messages = await _messageRequestService.GetMany(@$"/Messages/conversations/{selectedConversation!.Id}", new Dictionary<string,string>());
-        SetChatContent();
 
     }
     async Task OnChange()
@@ -122,18 +138,43 @@
             await OpenConversation();
             StateHasChanged();
         }
-
     }
-    void SetChatContent()
+    async Task CheckForEnter(KeyboardEventArgs e)
     {
-        if(Messages != null && Messages.Any())
+        if (e.Key == "Enter")
         {
-            System.Text.StringBuilder sb = new();
-            foreach(var message in Messages)
-            {
-                sb.Append($"\n\n  {message.TimeStamp.ToString()} \t {selectedConversation!.Participants.First(p=>p.Id == message.SenderId).Login} :  {message.Content}");
-            }
-            chatContent = sb.ToString();
+            await AddMessage();
         }
+    }
+    async Task AddMessage()
+    {
+            
+            
+            {
+                var message = new Message()
+                {
+                    Content = newMessage,
+                    ConversationId = selectedConversation!.Id,
+                    SenderId = CurrentUser.Id,
+                    TimeStamp = DateTime.Now
+                };
+                if (hubConnection is not null)
+                {
+                    await hubConnection.SendAsync("SendMessage", message);
+                }
+                await _messageRequestService.Save<Message>(@$"/Messages/",message);
+                newMessage = string.Empty;
+                
+                
+                
+            }
+        
+        StateHasChanged();
+        
+    }
+    void OnReceiveMessage(Message message)
+    {
+        Messages.Add(message);
+        StateHasChanged();
     }
 }
