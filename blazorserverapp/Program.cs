@@ -1,5 +1,6 @@
 using blazorserverapp.Service;
 using grincoAppModels;
+using Microsoft.AspNetCore.ResponseCompression;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +9,12 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor().AddCircuitOptions(options => options.DetailedErrors = true);
 builder.Services.AddHttpClient();
 builder.Services.AddMemoryCache();
+builder.Services.AddSignalR();
+builder.Services.AddResponseCompression(opts =>
+{
+   opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+         new[] { "application/octet-stream" });
+});
 builder.Services
 .AddScoped<ReloadService>()
 .AddScoped<RequestService<User>>()
@@ -31,6 +38,6 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.MapBlazorHub();
+app.MapHub<ChatHub>("/chathub");
 app.MapFallbackToPage("/_Host");
-
 app.Run();

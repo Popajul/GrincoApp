@@ -45,7 +45,16 @@ namespace blazorserverapp.Service
             // return item;
             return response;
         }
-
+        public async Task Save<T>(string resourcePath, T resource)
+        {
+            
+            _uriBuilder.Path = $"/api{resourcePath}";
+            
+            
+            var httpClient = _httpClientFactory.CreateClient();
+            httpClient.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("application/json; charset=UTF-8"));
+            var response = await httpClient.PostAsJsonAsync<T>(_uriBuilder.Uri,resource);
+        }
         private string BuildQueryParameters(Dictionary<string, string> parameters)
         {
             string qp = "";
