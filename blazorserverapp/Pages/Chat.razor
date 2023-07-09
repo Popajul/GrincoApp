@@ -22,7 +22,7 @@
 </div>
 
 <div class="conversation-container-1">
-    <div class="conversation-container-2">
+    <div class="conversation-container-2">      
         @foreach (var message in Messages)
     {
     string positionCssClassName = "";
@@ -113,7 +113,7 @@
             await OpenConversation();
         }
         hubConnection = new HubConnectionBuilder()
-            .WithUrl("http://grincoapp.bzh/chathub"/*_navigationManager.ToAbsoluteUri("/chathub")*/)
+            .WithUrl("http://grincoapp.bzh/chathub")
             .Build();
 
         hubConnection.On<Message>("ReceiveMessage",message =>
